@@ -1,0 +1,7 @@
+streamlit==1.30.0
+streamlit-webrtc==0.47.1
+requests==2.31.0
+python-jose[cryptography]==3.3.0
+PyJWT==2.8.0
+sounddevice==0.4.6
+numpy==1.26.3

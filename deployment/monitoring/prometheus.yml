@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'ai-assistant-cluster'
+    environment: 'production'
+
+scrape_configs:
+  # Gateway metrics
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:8000']
+        labels:
+          service: 'gateway'
+    metrics_path: '/metrics'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node exporter (for system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+# Alerting rules
+rule_files:
+  - 'alerts.yml'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']

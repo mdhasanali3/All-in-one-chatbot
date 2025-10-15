@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-assistant-frontend
+  labels:
+    app: ai-assistant
+    component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-assistant
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: ai-assistant
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ai-assistant-frontend:latest
+        ports:
+        - containerPort: 8501
+          name: http
+        env:
+        - name: BACKEND_URL
+          value: "http://gateway-service:8000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: ai-assistant
+    component: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: ai-assistant
+    component: frontend
+  ports:
+  - port: 8501
+    targetPort: 8501
+    protocol: TCP
+    name: http

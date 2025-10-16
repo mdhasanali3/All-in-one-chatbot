@@ -1,7 +1,7 @@
 """FastAPI Gateway - Main entry point for all client requests."""
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 import grpc
@@ -14,6 +14,7 @@ from backend.shared import (
     verify_access_key,
     get_current_user
 )
+from backend.gateway.grpc_clients import rag_client, llm_client, stt_client, tts_client
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 logger = setup_logger(__name__)
@@ -155,13 +156,18 @@ async def upload_document(
     logger.info(f"Document upload: {file.filename}")
 
     try:
-        # TODO: Call RAG service via gRPC to process document
-        # For now, return placeholder response
-        return {
-            "status": "success",
-            "filename": file.filename,
-            "message": "Document uploaded and indexed successfully"
-        }
+        # Read file data
+        file_data = await file.read()
+
+        # Call RAG service via gRPC to process document
+        result = rag_client.ingest_document(file_data, file.filename)
+
+        if result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=result.get("message", "Unknown error"))
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Document upload failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -187,11 +193,29 @@ async def query_knowledge_base(
     logger.info(f"Query received: {request.query[:50]}...")
 
     try:
-        # TODO: Call RAG and LLM services via gRPC
-        # For now, return placeholder response
+        # Call RAG service via gRPC
+        rag_result = rag_client.query(
+            query=request.query,
+            conversation_history=request.conversation_history,
+            k=5
+        )
+
+        # Build context from RAG results
+        context_text = rag_result.get("answer", "")
+
+        # Call LLM service via gRPC to generate final answer
+        llm_result = llm_client.generate(
+            query=request.query,
+            context=context_text,
+            conversation_history=request.conversation_history
+        )
+
+        # Format sources for response
+        sources = [source.get("filename", "unknown") for source in rag_result.get("sources", [])]
+
         return QueryResponse(
-            answer="This is a placeholder response. RAG service will be integrated soon.",
-            sources=[]
+            answer=llm_result.get("answer", "Error generating response"),
+            sources=sources
         )
     except Exception as e:
         logger.error(f"Query processing failed: {str(e)}")
@@ -218,11 +242,21 @@ async def transcribe_audio(
     logger.info(f"Audio transcription: {file.filename}")
 
     try:
-        # TODO: Call STT service via gRPC
-        return {
-            "text": "Placeholder transcription",
-            "status": "success"
-        }
+        # Read audio data
+        audio_data = await file.read()
+
+        # Call STT service via gRPC
+        result = stt_client.transcribe(
+            audio_data=audio_data,
+            filename=file.filename
+        )
+
+        if result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Transcription failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -248,11 +282,22 @@ async def synthesize_speech(
     logger.info(f"TTS synthesis: {request.text[:50]}...")
 
     try:
-        # TODO: Call TTS service via gRPC and stream audio
-        return {
-            "status": "success",
-            "message": "TTS service will be integrated soon"
-        }
+        # Call TTS service via gRPC
+        result = tts_client.synthesize_speech(
+            text=request.text,
+            voice_id=request.voice_id
+        )
+
+        if result.get("status") == "error":
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
+
+        # Return audio as binary response
+        return Response(
+            content=result.get("audio_data", b""),
+            media_type="audio/mpeg"
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"TTS synthesis failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

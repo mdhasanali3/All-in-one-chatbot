@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package llm;
+
+// LLM Service
+service LLMService {
+  rpc Generate(GenerateRequest) returns (GenerateResponse);
+  rpc GenerateStream(GenerateRequest) returns (stream GenerateStreamResponse);
+}
+
+// Generate
+message GenerateRequest {
+  string query = 1;
+  string context = 2;
+  repeated ConversationTurn conversation_history = 3;
+  string system_prompt = 4;
+  float temperature = 5;
+  int32 max_tokens = 6;
+}
+
+message ConversationTurn {
+  string user = 1;
+  string assistant = 2;
+}
+
+message GenerateResponse {
+  string answer = 1;
+  string model = 2;
+  int32 tokens_used = 3;
+  string status = 4;
+}
+
+message GenerateStreamResponse {
+  string chunk = 1;
+}

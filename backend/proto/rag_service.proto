@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package rag;
+
+// RAG Service
+service RAGService {
+  rpc IngestDocument(IngestDocumentRequest) returns (IngestDocumentResponse);
+  rpc Query(QueryRequest) returns (QueryResponse);
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+// IngestDocument
+message IngestDocumentRequest {
+  bytes file_data = 1;
+  string filename = 2;
+}
+
+message IngestDocumentResponse {
+  string status = 1;
+  string filename = 2;
+  int32 chunks_created = 3;
+  string file_type = 4;
+  string message = 5;
+}
+
+// Query
+message QueryRequest {
+  string query = 1;
+  repeated ConversationTurn conversation_history = 2;
+  int32 k = 3;
+}
+
+message ConversationTurn {
+  string user = 1;
+  string assistant = 2;
+}
+
+message QueryResponse {
+  string answer = 1;
+  repeated Source sources = 2;
+  bool context_used = 3;
+}
+
+message Source {
+  string filename = 1;
+  int32 chunk_index = 2;
+  float relevance_score = 3;
+}
+
+// GetStats
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  int32 total_documents = 1;
+  int32 total_chunks = 2;
+}

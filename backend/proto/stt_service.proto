@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package stt;
+
+// STT Service
+service STTService {
+  rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
+  rpc DetectLanguage(DetectLanguageRequest) returns (DetectLanguageResponse);
+}
+
+// Transcribe
+message TranscribeRequest {
+  bytes audio_data = 1;
+  string filename = 2;
+  string language = 3;
+  string task = 4;
+}
+
+message TranscribeResponse {
+  string text = 1;
+  string language = 2;
+  string status = 3;
+  string error = 4;
+}
+
+// DetectLanguage
+message DetectLanguageRequest {
+  bytes audio_data = 1;
+  string filename = 2;
+}
+
+message DetectLanguageResponse {
+  string language = 1;
+  float confidence = 2;
+  string status = 3;
+  string error = 4;
+}

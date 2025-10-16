@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package tts;
+
+// TTS Service
+service TTSService {
+  rpc SynthesizeSpeech(SynthesizeRequest) returns (SynthesizeResponse);
+  rpc StreamAudio(SynthesizeRequest) returns (stream AudioChunk);
+  rpc GetAvailableVoices(GetVoicesRequest) returns (GetVoicesResponse);
+}
+
+// Synthesize
+message SynthesizeRequest {
+  string text = 1;
+  string voice_id = 2;
+  string model = 3;
+  float stability = 4;
+  float similarity_boost = 5;
+  float style = 6;
+  bool use_speaker_boost = 7;
+}
+
+message SynthesizeResponse {
+  bytes audio_data = 1;
+  string voice_id = 2;
+  string model = 3;
+  int32 text_length = 4;
+  string status = 5;
+  string error = 6;
+}
+
+message AudioChunk {
+  bytes chunk_data = 1;
+}
+
+// GetVoices
+message GetVoicesRequest {}
+
+message GetVoicesResponse {
+  repeated Voice voices = 1;
+  string status = 2;
+  string error = 3;
+}
+
+message Voice {
+  string voice_id = 1;
+  string name = 2;
+  string category = 3;
+  string description = 4;
+}
